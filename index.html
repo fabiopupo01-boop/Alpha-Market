@@ -332,9 +332,14 @@
         let currentUserName = ''; // Nuevo campo para Nombre y Apellido
 
         // Variables globales proporcionadas por el entorno (MANDATORIO USAR)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-alphamarket-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "MOCK_KEY", authDomain: "MOCK_DOMAIN", projectId: "MOCK_PROJECT" };
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        st firebaseConfig = {
+  apiKey: "AIzaSyAYN8lXhChoyRMl60DT4gSH1pDPDdLP6Sw",
+  authDomain: "alpha-market-af3ff.firebaseapp.com",
+  projectId: "alpha-market-af3ff",
+  storageBucket: "alpha-market-af3ff.firebasestorage.app",
+  messagingSenderId: "83339892658",
+  appId: "1:83339892658:web:0d419de65faeb5e35236ab",
+  measurementId: "G-PJ68NN344B"
 
         // --- Utilidades UI ---
         const loadingIndicator = document.getElementById('loading-initial');
