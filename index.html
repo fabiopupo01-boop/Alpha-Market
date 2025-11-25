@@ -3,1102 +3,686 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alpha Market - Plataforma de Inversión Real</title>
-    <!-- Carga de Tailwind CSS -->
+    <title>Alpha Market - Plataforma de Inversión</title>
+    <!-- Carga de Tailwind CSS para estilos rápidos y responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Carga de Hero Icons para el menú -->
+    <!-- Uso de la fuente Inter -->
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8;
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fc; }
+        .card { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); }
+        .btn-primary { background-color: #1f3a5f; color: white; transition: all 0.2s; }
+        .btn-primary:hover { background-color: #142a45; }
+        .bg-gradient-header { background: linear-gradient(135deg, #1f3a5f 0%, #3b5c8d 100%); }
+        .input-style { border-color: #d1d5db; padding: 10px; border-radius: 8px; }
+        .input-style:focus { border-color: #3b5c8d; box-shadow: 0 0 0 2px rgba(59, 92, 141, 0.5); }
+        /* Estilo para el contenedor de notificaciones */
+        #notification-box { z-index: 1000; }
+        /* Media query para centrar la tarjeta en pantallas grandes */
+        @media (min-width: 768px) {
+            .container-center { max-width: 450px; }
         }
-        .alpha-gradient {
-            /* Degradado azul y fuerte */
-            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
-        }
-        .alpha-text-gradient {
-            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .card-bg {
-            background-color: #ffffff;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-        }
-        .loading-ring {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
+        /* Estilo para el cargando */
+        #loading-spinner {
+            border-top-color: #1f3a5f;
+            -webkit-animation: spin 1s ease-in-out infinite;
             animation: spin 1s ease-in-out infinite;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        .wallet-address {
-            word-break: break-all;
-            user-select: all;
-        }
-        .link-display {
-            word-break: break-all;
-            font-size: 0.875rem; /* text-sm */
-        }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-    <!-- MODAL DE MENSAJES (Reemplaza a alert()) -->
-    <div id="modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4" onclick="hideModal()">
-        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-95" onclick="event.stopPropagation()">
-            <h3 id="modal-title" class="text-xl font-bold mb-3 text-gray-800">Mensaje</h3>
-            <p id="modal-message" class="text-gray-600 mb-4"></p>
-            <button onclick="hideModal()" class="w-full alpha-gradient text-white py-2 rounded-lg font-semibold hover:opacity-90 transition duration-200">
-                Entendido
-            </button>
+    <!-- Contenedor de Notificaciones (Modal personalizado para alertas) -->
+    <div id="notification-box" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl card p-6 w-full max-w-sm text-center">
+            <h3 id="notification-title" class="text-xl font-bold mb-3 text-gray-900"></h3>
+            <p id="notification-message" class="text-gray-700 mb-6"></p>
+            <button id="notification-close" class="btn-primary w-full py-2 rounded-lg font-semibold">Entendido</button>
         </div>
     </div>
 
-    <!-- MODAL DE DEPÓSITO -->
-    <div id="deposit-modal-container" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4" onclick="hideDepositModal()">
-        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full transform transition-all duration-300 scale-95" onclick="event.stopPropagation()">
-            <h3 class="text-2xl font-bold mb-4 alpha-text-gradient">Depósito de Fondos - Alpha Market</h3>
-            
-            <form id="deposit-form" class="space-y-4">
-                <div>
-                    <label for="deposit-amount" class="block text-sm font-medium text-gray-700">Monto a Invertir (Mínimo $15.00)</label>
-                    <input type="number" step="0.01" min="15.00" id="deposit-amount" required placeholder="Ej: 500.00"
-                           class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                </div>
-
-                <div>
-                    <label for="deposit-network" class="block text-sm font-medium text-gray-700">Seleccione Red de Depósito (USDT)</label>
-                    <select id="deposit-network" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" onchange="updateWalletAddress()">
-                        <option value="">-- Seleccionar Red --</option>
-                        <option value="USDT BEP20">USDT BEP20</option>
-                        <option value="USDT TRC20">USDT TRC20</option>
-                    </select>
-                </div>
-
-                <!-- Detalles de la Billetera (Dinámico) -->
-                <div id="wallet-details" class="bg-gray-50 p-4 rounded-lg hidden">
-                    <p class="text-sm font-medium text-gray-700">Red Seleccionada: <span id="selected-network" class="font-bold text-blue-800"></span></p>
-                    <p class="text-sm font-medium text-gray-700 mt-2">Dirección de Billetera:</p>
-                    <div class="flex items-center space-x-2 mt-1 bg-gray-200 p-2 rounded-lg">
-                        <span id="wallet-address-display" class="wallet-address text-sm font-mono text-gray-900 flex-grow"></span>
-                        <button type="button" onclick="copyWalletAddress()" class="p-1 bg-blue-200 rounded-md hover:bg-blue-300 text-blue-800 transition duration-150">
-                            Copiar
-                        </button>
-                    </div>
-                </div>
-
-                <button type="submit" id="deposit-submit-btn" class="w-full py-3 text-white font-bold rounded-lg alpha-gradient hover:opacity-90 transition duration-200 flex justify-center items-center space-x-2">
-                    <span id="deposit-submit-text">Confirmar Depósito</span>
-                    <div id="deposit-submit-spinner" class="loading-ring hidden"></div>
-                </button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- MODAL DEL MENÚ DE NAVEGACIÓN (Hamburguer Menu) -->
-    <div id="menu-modal" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden justify-end" onclick="toggleMenu(false)">
-        <div class="bg-white w-64 h-full shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-full" id="menu-drawer" onclick="event.stopPropagation()">
-            
-            <div class="p-6 border-b border-gray-100">
-                <h3 class="text-xl font-bold alpha-text-gradient">Navegación</h3>
-                <p id="user-display-name-email" class="text-sm text-gray-500 mt-1 truncate"></p>
-            </div>
-            
-            <nav class="flex flex-col p-4 space-y-2">
-                <a href="#" onclick="menuNavigate('home')" class="p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-150 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-10l-2-2m2 2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                    Inicio
-                </a>
-                <a href="#" onclick="menuNavigate('dashboard')" id="menu-dashboard-link" class="p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-150 flex items-center hidden">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.333 0 2.667.5 4 1.5 1.333 1 2 2 2 3s-.667 2-2 3c-1.333 1-2.667 1.5-4 1.5-1.333 0-2.667-.5-4-1.5-1.333-1-2-2-2-3s.667-2 2-3c1.333-1 2.667-1.5 4-1.5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11a1 1 0 100 2 1 1 0 000-2z"></path></svg>
-                    Panel de Inversor
-                </a>
-                <a href="#" onclick="menuNavigate('referrals')" id="menu-referrals-link" class="p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-150 flex items-center hidden">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20h-2m2 0h-2M15 4a3 3 0 11-6 0 3 3 0 016 0zM8.56 9.68a2 2 0 100 3.64 2 2 0 000-3.64z"></path></svg>
-                    Mis Referidos
-                </a>
-
-                <div id="auth-menu-links">
-                    <!-- Links de Login/Register o Logout se insertan aquí -->
-                </div>
-            </nav>
-        </div>
-    </div>
-
-
-    <!-- 1. BARRA DE NAVEGACIÓN -->
-    <header class="bg-white shadow-lg sticky top-0 z-10">
-        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <a href="#" onclick="navigateToView('home')" class="text-3xl font-extrabold alpha-text-gradient">
-                Alpha Market
-            </a>
-            
-            <!-- Botón del menú Hambuguer -->
-            <button onclick="toggleMenu(true)" class="p-2 rounded-lg hover:bg-gray-100 transition duration-150">
-                <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-            </button>
+    <!-- Cabecera de la Aplicación -->
+    <header class="bg-gradient-header text-white p-4 shadow-lg flex justify-between items-center">
+        <h1 class="text-2xl font-extrabold tracking-tight">Alpha Market</h1>
+        <button id="menu-button" class="md:hidden p-2 rounded-lg hover:bg-white hover:bg-opacity-10">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+        <!-- Navegación Desktop -->
+        <nav class="hidden md:flex space-x-4 font-semibold" id="desktop-nav">
+            <a href="#" onclick="showPage('dashboard')" class="hover:underline">Dashboard</a>
+            <a href="#" onclick="showPage('referrals')" class="hover:underline">Referidos</a>
+            <a href="#" onclick="showPage('profile')" class="hover:underline">Perfil</a>
+            <button onclick="logout()" class="hover:underline">Cerrar Sesión</button>
         </nav>
     </header>
 
-    <!-- 2. CONTENIDO PRINCIPAL (Sistema de Vistas SPA) -->
-    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-        <div id="loading-initial" class="text-center text-gray-600 font-semibold py-20">
-            Cargando plataforma de inversión...
+    <!-- Menú Móvil Desplegable -->
+    <div id="mobile-menu" class="bg-white shadow-xl md:hidden hidden border-b border-gray-200">
+        <nav class="flex flex-col p-4 space-y-2 font-medium">
+            <a href="#" onclick="showPage('dashboard'); toggleMenu()" class="p-2 hover:bg-gray-100 rounded-lg">Dashboard</a>
+            <a href="#" onclick="showPage('referrals'); toggleMenu()" class="p-2 hover:bg-gray-100 rounded-lg">Referidos</a>
+            <a href="#" onclick="showPage('profile'); toggleMenu()" class="p-2 hover:bg-gray-100 rounded-lg">Perfil</a>
+            <button onclick="logout(); toggleMenu()" class="p-2 text-left text-red-600 hover:bg-red-50 rounded-lg">Cerrar Sesión</button>
+        </nav>
+    </div>
+
+    <!-- Contenedor Principal (Cambia de vista según el estado de la aplicación) -->
+    <main id="app-container" class="p-4 sm:p-6 min-h-[calc(100vh-64px)] flex justify-center items-start pt-10">
+
+        <!-- SPINNER DE CARGA INICIAL -->
+        <div id="loading-page" class="flex flex-col items-center justify-center p-8 text-gray-600">
+            <div id="loading-spinner" class="w-12 h-12 border-4 border-dashed rounded-full mb-3"></div>
+            <p class="text-lg font-semibold">Cargando aplicación...</p>
+            <p class="text-sm mt-1 text-gray-500">Conectando a la base de datos...</p>
         </div>
-        
-        <div id="content-container" class="space-y-12">
-            
-            <!-- VISTA DE INICIO (LANDING PAGE) -->
-            <div id="home-view" class="hidden">
-                <!-- Contenido de Landing Page -->
-                <section class="text-center py-16 sm:py-24 bg-blue-50 rounded-xl">
-                    <h1 class="text-4xl sm:text-6xl font-extrabold text-gray-900 leading-tight">
-                        Transforma tu Capital con <span class="alpha-text-gradient">Alpha Market</span>
-                    </h1>
-                    <p class="mt-4 text-xl sm:text-2xl text-gray-600 max-w-3xl mx-auto">
-                        La única plataforma con un **20% de rendimiento diario** garantizado, operando desde Miami.
-                    </p>
-                    <div class="mt-8 flex justify-center space-x-4">
-                        <button onclick="navigateToView('register')" class="px-8 py-3 text-lg font-bold text-white alpha-gradient rounded-full hover:opacity-90 transition duration-300 shadow-xl">
-                            Comenzar Ahora
+
+        <!-- VISTA DE AUTENTICACIÓN (LOGIN / REGISTRO) -->
+        <section id="auth-page" class="w-full container-center bg-white rounded-xl card p-6 transition-opacity duration-300 hidden">
+            <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Acceder a Alpha Market</h2>
+            <div id="auth-form-container">
+                <!-- El contenido de login y registro se inyecta aquí -->
+            </div>
+            <!-- Mostrar ID de Referencia para debugging/multiusuario -->
+            <p id="auth-user-id" class="text-xs text-gray-500 mt-4 text-center hidden"></p>
+        </section>
+
+        <!-- VISTA DEL DASHBOARD (CONTENIDO AUTENTICADO) -->
+        <section id="dashboard-page" class="w-full container-center hidden transition-opacity duration-300">
+            <div class="space-y-6">
+                <!-- Tarjetas de Métricas -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl card p-5 flex flex-col justify-between">
+                        <h3 class="text-lg font-medium text-gray-500">Capital Total</h3>
+                        <p id="dashboard-balance" class="text-4xl font-extrabold text-[#1f3a5f] mt-1">$0.00</p>
+                    </div>
+                    <div class="bg-white rounded-xl card p-5 flex flex-col justify-between">
+                        <h3 class="text-lg font-medium text-gray-500">Referidos Activos</h3>
+                        <p id="dashboard-referrals-count" class="text-4xl font-extrabold text-green-600 mt-1">0</p>
+                    </div>
+                </div>
+
+                <!-- Formulario de Inversión / Retiro -->
+                <div class="bg-white rounded-xl card p-6">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800">Gestionar Fondos</h3>
+                    <div class="flex space-x-4 mb-4 border-b pb-2">
+                        <button id="btn-deposit" class="font-semibold text-lg pb-2 border-b-2 border-transparent text-gray-500 transition-colors duration-200">Depositar</button>
+                        <button id="btn-withdraw" class="font-semibold text-lg pb-2 border-b-2 border-transparent text-gray-500 transition-colors duration-200">Retirar</button>
+                    </div>
+
+                    <form id="transaction-form" class="space-y-4">
+                        <div id="transaction-message" class="p-3 rounded-lg text-sm hidden"></div>
+                        <input type="number" id="amount" placeholder="Cantidad ($)" required min="1" step="0.01" class="w-full input-style">
+                        <button type="submit" id="transaction-submit-btn" class="btn-primary w-full py-3 rounded-lg font-bold text-lg">Realizar Depósito</button>
+                    </form>
+                </div>
+
+                <!-- Historial de Transacciones (Simplificado) -->
+                <div class="bg-white rounded-xl card p-6">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800">Historial Reciente</h3>
+                    <ul id="transaction-list" class="space-y-3">
+                        <li class="text-gray-500 italic text-center p-4">No hay transacciones recientes.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA DE REFERIDOS -->
+        <section id="referrals-page" class="w-full container-center hidden transition-opacity duration-300">
+            <div class="bg-white rounded-xl card p-6 space-y-6">
+                <h2 class="text-3xl font-bold text-gray-800 text-center">Programa de Referidos</h2>
+
+                <div class="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p class="font-semibold text-yellow-800">¡Gana el 10% por cada referido que invierta!</p>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="referral-link-input" class="block font-medium text-gray-700">Tu Enlace de Referido Único:</label>
+                    <div class="flex">
+                        <input type="text" id="referral-link-input" readonly class="w-full input-style bg-gray-50 truncate" value="Cargando enlace...">
+                        <button id="copy-referral-link" class="bg-green-600 text-white p-3 ml-2 rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 002-2h-2m4 2a2 2 0 00-2-2h-2M4 7h16M4 11h16M4 15h16M4 19h16"></path></svg>
                         </button>
-                        <button onclick="navigateToView('login')" class="px-8 py-3 text-lg font-bold text-blue-600 bg-white border-2 border-blue-600 rounded-full hover:bg-blue-50 transition duration-300">
-                            Iniciar Sesión
-                        </button>
                     </div>
-                </section>
+                </div>
 
-                <section class="py-16 bg-white rounded-xl shadow-lg p-8 mt-12">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-4 alpha-text-gradient">
-                        Sobre Nosotros: La Visión Alpha
-                    </h2>
-                    <p class="text-lg text-gray-600 text-center mb-10 max-w-4xl mx-auto">
-                        Nacimos en el corazón tecnológico de Miami con la misión de democratizar la riqueza, ofreciendo herramientas de inversión de alto rendimiento que antes estaban reservadas solo para élites.
-                    </p>
-                    <div class="grid md:grid-cols-3 gap-8 text-center">
-                        <div class="p-4">
-                            <h3 class="text-2xl font-bold mb-2 text-blue-800">Misión</h3>
-                            <p class="text-gray-600">Proporcionar una vía de crecimiento financiero exponencial y accesible para cualquier inversor global, con total transparencia y seguridad.</p>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="text-2xl font-bold mb-2 text-blue-800">Visión</h3>
-                            <p class="text-gray-600">Ser el líder indiscutible en rendimientos diarios, redefiniendo el futuro de la capitalización compuesta a nivel internacional.</p>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="text-2xl font-bold mb-2 text-blue-800">Valores</h3>
-                            <p class="text-gray-600">Transparencia, Confianza, Innovación Continua y un compromiso inquebrantable con el éxito financiero de nuestros usuarios.</p>
-                        </div>
-                    </div>
-                </section>
+                <div>
+                    <h3 class="text-xl font-bold mb-3 border-b pb-1 text-gray-800">Lista de Referidos (<span id="referrals-list-count">0</span>)</h3>
+                    <ul id="referrals-list" class="space-y-2 text-gray-600">
+                        <li id="no-referrals-message" class="text-center italic">Aún no tienes referidos.</li>
+                    </ul>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- VISTA DE PERFIL -->
+        <section id="profile-page" class="w-full container-center hidden transition-opacity duration-300">
+            <div class="bg-white rounded-xl card p-6 space-y-6">
+                <h2 class="text-3xl font-bold text-gray-800 text-center">Mi Perfil</h2>
                 
-                <section class="py-12 mt-12">
-                    <h2 class="text-3xl font-bold text-center mb-10 text-gray-800">
-                        Nuestro Motor de Crecimiento
-                    </h2>
-                    <div class="grid md:grid-cols-3 gap-8 text-center">
-                        <div class="card-bg p-6">
-                            <div class="text-5xl alpha-text-gradient mb-3">20%</div>
-                            <h3 class="text-xl font-bold mb-2 text-gray-800">Rendimiento Diario Real</h3>
-                            <p class="text-gray-600">Aplicamos una tasa de interés compuesto del 20% sobre tu capital todos los días. Un crecimiento sin precedentes en el mercado.</p>
-                        </div>
-                        <div class="card-bg p-6">
-                            <div class="text-5xl alpha-text-gradient mb-3">⚡</div>
-                            <h3 class="text-xl font-bold mb-2 text-gray-800">Capitalización Compuesta</h3>
-                            <p class="text-gray-600">Tus ganancias se suman al capital, generando rendimientos aún mayores al día siguiente. El poder del interés compuesto.</p>
-                        </div>
-                        <div class="card-bg p-6">
-                            <div class="text-5xl alpha-text-gradient mb-3">🔒</div>
-                            <h3 class="text-xl font-bold mb-2 text-gray-800">Seguridad Total</h3>
-                            <p class="text-gray-600">Tu capital está protegido en nuestra infraestructura cifrada y asegurada contra ataques cibernéticos.</p>
-                        </div>
-                    </div>
-                </section>
+                <div class="space-y-4">
+                    <p class="text-lg"><span class="font-semibold text-gray-600">Email:</span> <span id="profile-email" class="text-gray-800 font-medium">Cargando...</span></p>
+                    <p class="text-lg"><span class="font-semibold text-gray-600">ID de Usuario:</span> <span id="profile-user-id" class="text-gray-800 font-mono text-sm break-all">Cargando...</span></p>
+                    <p class="text-lg"><span class="font-semibold text-gray-600">ID de Referido (si aplica):</span> <span id="profile-referrer-id" class="text-gray-800 font-mono text-sm break-all">N/A</span></p>
+                </div>
 
-                <section class="py-12 bg-white rounded-xl shadow-lg p-8 mt-12">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-3">
-                        Transparencia y Ubicación Estratégica
-                    </h2>
-                    <div class="grid md:grid-cols-2 gap-8">
-                        <div>
-                            <h3 class="text-2xl font-bold alpha-text-gradient mb-3 flex items-center">
-                                <span class="mr-2">⚖️</span> Marco Regulatorio
-                            </h3>
-                            <p class="text-gray-600">Alpha Market está comprometido con la excelencia y la legalidad. Operamos bajo un **estricto marco de cumplimiento financiero**, supervisado por las autoridades de inversión digital en los Estados Unidos. Nuestra prioridad es la confianza y la transparencia para todos nuestros inversores globales.</p>
-                            <ul class="mt-4 space-y-2 text-gray-700 text-sm">
-                                <li>• Cumplimiento AML (Anti-Lavado de Dinero) riguroso.</li>
-                                <li>• Auditorías de capital periódicas.</li>
-                                <li>• Protección de datos bajo leyes internacionales.</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 class="text-2xl font-bold alpha-text-gradient mb-3 flex items-center">
-                                <span class="mr-2">📍</span> Sede Principal en Miami, USA
-                            </h3>
-                            <p class="text-gray-600">Nuestra sede estratégica se encuentra en el vibrante centro de innovación tecnológica y financiera, **Miami, Florida, EE. UU.**, lo que nos permite estar a la vanguardia de las regulaciones y tendencias del mercado global. Nuestro equipo de gestión opera desde esta ubicación privilegiada.</p>
-                            <div class="bg-gray-50 p-4 rounded-lg mt-4 text-sm">
-                                <p class="font-semibold text-gray-700">Dirección Operativa:</p>
-                                <p class="text-gray-500">Brickell Financial District, Miami, Florida, 33131, USA.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                
+                <div class="pt-4 border-t">
+                    <button onclick="logout()" class="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors duration-200">Cerrar Sesión</button>
+                </div>
             </div>
+        </section>
 
-            <!-- VISTA DE AUTENTICACIÓN (LOGIN/REGISTER) -->
-            <div id="auth-view" class="hidden">
-                <!-- El contenido de login/registro se inserta aquí -->
-            </div>
-
-            <!-- VISTA DE DASHBOARD -->
-            <div id="dashboard-view" class="hidden">
-                <!-- El contenido del dashboard se inserta aquí dinámicamente -->
-            </div>
-            
-            <!-- NUEVA VISTA DE REFERIDOS -->
-            <div id="referrals-view" class="hidden">
-                <!-- El contenido de referidos se inserta aquí dinámicamente -->
-            </div>
-        </div>
-
-        <!-- Información de Referido (Link y Código) - Se usa en Dashboard y Referrals -->
-        <div id="user-referral-info" class="hidden text-center mt-8 p-4 bg-blue-100 rounded-lg max-w-xl mx-auto">
-            <h3 class="text-xl font-bold text-blue-900 mb-3">¡Comparta y Gane el 10% de Bono!</h3>
-
-            <!-- Link de Referido -->
-            <p class="text-sm font-medium text-blue-600">Su Link de Referido Único:</p>
-            <div class="flex items-center space-x-2 mt-1 bg-blue-200 p-2 rounded-lg">
-                <span id="referral-link-display" class="link-display font-mono text-blue-900 flex-grow text-left"></span>
-                <button type="button" onclick="copyReferralInfo('link')" class="p-1 bg-blue-300 rounded-md hover:bg-blue-400 text-blue-900 transition duration-150 text-sm font-semibold">
-                    Copiar Link
-                </button>
-            </div>
-            
-            <!-- Código de Referido (UID) -->
-            <p class="text-sm font-medium text-blue-600 mt-3">... o use su Código (UID):</p>
-            <div class="flex items-center space-x-2 mt-1 bg-blue-200 p-2 rounded-lg">
-                <span id="referral-code-display" class="text-lg font-mono text-blue-900 break-all flex-grow text-left"></span>
-                <button type="button" onclick="copyReferralInfo('code')" class="p-1 bg-blue-300 rounded-md hover:bg-blue-400 text-blue-900 transition duration-150 text-sm font-semibold">
-                    Copiar Código
-                </button>
-            </div>
-            <p class="text-xs text-blue-700 mt-3">Este link/código incluye automáticamente su ID de usuario.</p>
-        </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="bg-gray-800 text-white mt-12 py-6">
-        <div class="container mx-auto px-4 text-center text-sm">
-            <p>&copy; 2024 Alpha Market. Sede en Miami, EE. UU. | Invertir conlleva riesgo de pérdida de capital.</p>
-        </div>
-    </footer>
-
-    <!-- INICIALIZACIÓN Y LÓGICA DE FIREBASE Y PLATAFORMA -->
+    <!-- Scripts de Firebase y Lógica de la Aplicación -->
     <script type="module">
-        // Importaciones de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, setLogLevel, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Establecer el nivel de registro de Firebase (MANDATORIO para depuración)
-        setLogLevel('debug');
-
-        // --- Configuración Global de Inversión ---
-        const WALLET_INFO = {
-            'USDT BEP20': { address: '0x3a0b76c620f77015b39284986e2f4a2af6358e3f', network: 'Binance Smart Chain (BEP20)' },
-            'USDT TRC20': { address: 'TDD2h4H8x3wiAGnaJN2FD6khogA1F9WLwb', network: 'TRON (TRC20)' }
-        };
-        const MIN_DEPOSIT = 15.00;
-        const DAILY_RETURN_RATE = 0.20; 
-        const REFERRAL_BONUS_RATE = 0.10; // 10% del depósito del referido
+        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, Timestamp, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // URL BASE PARA EL LINK DE REFERIDO
-        const BASE_URL = "https://alphamarket.io/register"; 
+        // Configuraciones globales para Firebase
+        setLogLevel('Debug'); // Útil para ver logs de Firebase en la consola del navegador
 
-        // --- Variables Globales y Configuración de Firebase ---
-        let db;
-        let auth;
+        // CONFIGURACIÓN DE FIREBASE DEL USUARIO (AÑADIDA)
+        const firebaseConfig = {
+          apiKey: "AIzaSyAYN8lXhChoyRMl60DT4gSH1pDPDdLP6Sw",
+          authDomain: "alpha-market-af3ff.firebaseapp.com",
+          projectId: "alpha-market-af3ff",
+          storageBucket: "alpha-market-af3ff.firebasestorage.app",
+          messagingSenderId: "83339892658",
+          appId: "1:83339892658:web:0d419de65faeb5e35236ab"
+          // measurementId: "G-PJ68NN344B" // No se usa en este script, se omite para limpieza.
+        };
+        // ------------------------------------------------------------------
+        
+        // La ruta fija de la colección raíz para asegurar que funcione en GitHub Pages
+        const APP_COLLECTION_ROOT = 'alpha_market_users'; 
+        const initialAuthToken = null; 
+
+        let app, db, auth;
         let currentUser = null;
-        let currentBalance = 0.00;
-        let totalRealGain = 0.00; 
-        let currentUserName = ''; // Nuevo campo para Nombre y Apellido
-
-        // Variables globales proporcionadas por el entorno (MANDATORIO USAR)
-        st firebaseConfig = {
-  apiKey: "AIzaSyAYN8lXhChoyRMl60DT4gSH1pDPDdLP6Sw",
-  authDomain: "alpha-market-af3ff.firebaseapp.com",
-  projectId: "alpha-market-af3ff",
-  storageBucket: "alpha-market-af3ff.firebasestorage.app",
-  messagingSenderId: "83339892658",
-  appId: "1:83339892658:web:0d419de65faeb5e35236ab",
-  measurementId: "G-PJ68NN344B"
-
-        // --- Utilidades UI ---
-        const loadingIndicator = document.getElementById('loading-initial');
-        const homeView = document.getElementById('home-view');
-        const authView = document.getElementById('auth-view');
-        const dashboardView = document.getElementById('dashboard-view');
-        const referralsView = document.getElementById('referrals-view');
-        const userReferralInfo = document.getElementById('user-referral-info');
-        const referralLinkDisplay = document.getElementById('referral-link-display');
-        const referralCodeDisplay = document.getElementById('referral-code-display');
-        const menuModal = document.getElementById('menu-modal');
-        const menuDrawer = document.getElementById('menu-drawer');
-        const userDisplayNameEmail = document.getElementById('user-display-name-email');
-        const menuDashboardLink = document.getElementById('menu-dashboard-link');
-        const menuReferralsLink = document.getElementById('menu-referrals-link');
-
-
-        /**
-         * Maneja la navegación y cierra el menú lateral.
-         */
-        window.menuNavigate = (viewName) => {
-            toggleMenu(false); // Cierra el menú al navegar
-            navigateToView(viewName);
-        };
+        let isAuthReady = false;
         
-        /**
-         * Abre o cierra el menú lateral (Hamburguer Menu).
-         */
-        window.toggleMenu = (show) => {
-            if (show) {
-                menuModal.classList.remove('hidden');
-                menuModal.classList.add('flex');
-                setTimeout(() => menuDrawer.classList.remove('translate-x-full'), 10);
-            } else {
-                menuDrawer.classList.add('translate-x-full');
-                setTimeout(() => menuModal.classList.add('hidden'), 300); // Espera la transición CSS
-            }
-        };
+        // --- UTILIDADES ---
 
-        /**
-         * Navega a una vista específica (SPA routing).
-         * @param {string} viewName - 'home', 'login', 'register', 'dashboard', or 'referrals'.
-         */
-        window.navigateToView = (viewName) => {
-            homeView.classList.add('hidden');
-            authView.classList.add('hidden');
-            dashboardView.classList.add('hidden');
-            referralsView.classList.add('hidden');
-            userReferralInfo.classList.add('hidden');
+        // Función para mostrar el modal de notificación
+        function showNotification(title, message) {
+            document.getElementById('notification-title').textContent = title;
+            document.getElementById('notification-message').textContent = message;
+            document.getElementById('notification-box').classList.remove('hidden');
+            document.getElementById('notification-box').classList.add('flex');
+        }
 
-            const isAuthenticated = currentUser && !currentUser.isAnonymous;
+        document.getElementById('notification-close').addEventListener('click', () => {
+            document.getElementById('notification-box').classList.add('hidden');
+            document.getElementById('notification-box').classList.remove('flex');
+        });
 
-            switch (viewName) {
-                case 'home':
-                    homeView.classList.remove('hidden');
-                    break;
-                case 'login':
-                case 'register':
-                    if (isAuthenticated) { 
-                        navigateToView('dashboard'); 
-                        return;
-                    }
-                    authView.classList.remove('hidden');
-                    renderAuthForms(viewName);
-                    break;
-                case 'dashboard':
-                    if (isAuthenticated) {
-                        dashboardView.classList.remove('hidden');
-                        renderReferralInfo(); // Muestra el link/código
-                        renderDashboard();
-                    } else {
-                        navigateToView('login'); 
-                    }
-                    break;
-                case 'referrals':
-                    if (isAuthenticated) {
-                        referralsView.classList.remove('hidden');
-                        renderReferralInfo(); // Muestra el link/código
-                        renderReferralsView();
-                    } else {
-                        navigateToView('login');
-                    }
-                    break;
-                default:
-                    homeView.classList.remove('hidden');
-            }
-        };
+        // Función para cambiar de vista (oculta el spinner)
+        function showPage(pageId) {
+            document.getElementById('loading-page').classList.add('hidden');
+            document.getElementById('loading-page').classList.remove('flex');
 
-        /** Muestra el modal de mensajes personalizado. (Reemplaza a alert()) */
-        window.showModal = (title, message) => {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
-            document.getElementById('modal-container').classList.remove('hidden');
-            document.getElementById('modal-container').classList.add('flex');
-        };
-        window.hideModal = () => {
-            document.getElementById('modal-container').classList.add('hidden');
-            document.getElementById('modal-container').classList.remove('flex');
-        };
-
-        // Funciones para el Modal de Depósito
-        window.showDepositModal = () => {
-            if (!currentUser || currentUser.isAnonymous) {
-                showModal("Acceso Requerido", "Debes iniciar sesión para acceder al depósito.");
-                return;
-            }
-            document.getElementById('deposit-modal-container').classList.remove('hidden');
-            document.getElementById('deposit-modal-container').classList.add('flex');
-            document.getElementById('deposit-form').reset();
-            document.getElementById('wallet-details').classList.add('hidden');
-            document.getElementById('wallet-address-display').textContent = '';
-            document.getElementById('selected-network').textContent = '';
-        };
-
-        window.hideDepositModal = () => {
-            document.getElementById('deposit-modal-container').classList.add('hidden');
-            document.getElementById('deposit-modal-container').classList.remove('flex');
-        };
-        
-        window.copyWalletAddress = () => {
-            const address = document.getElementById('wallet-address-display').textContent;
-            if (address) {
-                const tempInput = document.createElement('input');
-                tempInput.value = address;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                try {
-                    document.execCommand('copy');
-                    showModal('Copiado', '¡Dirección de billetera copiada al portapapeles!');
-                } catch (err) {
-                    showModal('Error al Copiar', 'No se pudo copiar la dirección.');
+            ['auth-page', 'dashboard-page', 'referrals-page', 'profile-page'].forEach(id => {
+                const page = document.getElementById(id);
+                if (page) {
+                    page.classList.add('hidden');
                 }
-                document.body.removeChild(tempInput);
+            });
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+                targetPage.classList.add('flex', 'flex-col', 'items-center');
             }
-        };
+        }
         
-        /**
-         * Copia el link o el código de referido al portapapeles.
-         * @param {'link'|'code'} type - El tipo de información a copiar.
-         */
-        window.copyReferralInfo = (type) => {
-            const element = type === 'link' ? referralLinkDisplay : referralCodeDisplay;
-            const info = element.textContent;
-            
-            if (info) {
-                const tempInput = document.createElement('input');
-                tempInput.value = info;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                try {
-                    document.execCommand('copy');
-                    const message = type === 'link' ? 'Link de Referido copiado.' : 'Código de Referido copiado.';
-                    showModal('Copiado', message);
-                } catch (err) {
-                    showModal('Error al Copiar', 'No se pudo copiar la información automáticamente.');
-                }
-                document.body.removeChild(tempInput);
-            }
-        };
+        function updateNavState(isLoggedIn) {
+            const navElements = document.querySelectorAll('#desktop-nav, #mobile-menu nav');
+            navElements.forEach(nav => {
+                // Muestra u oculta los botones de navegación (Dashboard, Referidos, etc.)
+                const displayClass = isLoggedIn ? 'flex' : 'hidden';
+                nav.querySelectorAll('a, button').forEach(el => {
+                    el.classList.toggle('hidden', !isLoggedIn);
+                });
+            });
+        }
 
-        window.updateWalletAddress = () => {
-            const network = document.getElementById('deposit-network').value;
-            const detailsDiv = document.getElementById('wallet-details');
-            const addressDisplay = document.getElementById('wallet-address-display');
-            const selectedNetwork = document.getElementById('selected-network');
+        // Obtener parámetro de URL para referidos
+        function getReferrerId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('ref');
+        }
 
-            if (network && WALLET_INFO[network]) {
-                const info = WALLET_INFO[network];
-                addressDisplay.textContent = info.address;
-                selectedNetwork.textContent = info.network;
-                detailsDiv.classList.remove('hidden');
-            } else {
-                detailsDiv.classList.add('hidden');
-                addressDisplay.textContent = '';
-                selectedNetwork.textContent = '';
-            }
-        };
+        // Formatear la cantidad a moneda
+        const formatter = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        });
 
+        // --- LÓGICA DE FIREBASE Y AUTENTICACIÓN ---
 
-        // --- Lógica de Inicialización y Auth ---
-        
-        const initializeAppAndAuth = async () => {
+        async function initFirebase() {
             try {
-                // 1. Inicializar servicios de Firebase
-                const app = initializeApp(firebaseConfig);
+                // Validación: la configuración DEBE tener el apiKey para funcionar.
+                if (!firebaseConfig.apiKey || firebaseConfig.apiKey.length < 10) {
+                    console.error("Firebase config is missing or invalid.");
+                    showNotification("Error Crítico", "Falta la configuración de Firebase. Por favor, asegúrese de que el objeto 'firebaseConfig' esté completo.");
+                    return;
+                }
+                
+                // Inicialización de la app
+                app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-
-                // 2. Autenticación Inicial
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
+                
+                // Intento de inicio de sesión anónima (si no hay token), crucial para el flujo inicial
+                if (!auth.currentUser) {
+                     await signInAnonymously(auth); 
+                     console.log("Signed in Anonymously for initial Firestore access.");
                 }
 
-                // 3. Listener de Estado de Autenticación
                 onAuthStateChanged(auth, async (user) => {
-                    loadingIndicator.classList.add('hidden');
-
-                    if (user && !user.isAnonymous) {
+                    if (user) {
                         currentUser = user;
-                        // Forzamos la carga del nombre al iniciar sesión para el menú
-                        await fetchAndSetUserData(user.uid); 
-                        renderMenuControls(true, user.email);
-                        // Carga la vista de HOME SIEMPRE al inicio
-                        navigateToView('home'); 
+                        isAuthReady = true;
                         
+                        // Si el usuario sigue siendo anónimo (no ha iniciado sesión con email/pass)
+                        if (currentUser.isAnonymous && auth.currentUser.email === null) {
+                            showAuthForm('login'); 
+                            showPage('auth-page'); // Muestra la página de login/registro
+                            updateNavState(false);
+                            document.getElementById('auth-user-id').textContent = `ID Temporal: ${currentUser.uid}`;
+                            document.getElementById('auth-user-id').classList.remove('hidden');
+
+                        } else {
+                            // Usuario real (email/password)
+                            await setupUserDocument(currentUser.uid);
+                            startRealtimeListeners(currentUser.uid);
+                            showPage('dashboard');
+                            updateNavState(true);
+                        }
+
                     } else {
-                        currentUser = user; 
-                        currentUserName = '';
-                        renderMenuControls(false);
-                        // Navega a la página de inicio (Landing Page)
-                        navigateToView('home'); 
+                        // El usuario ha cerrado sesión o no se pudo autenticar
+                        currentUser = null;
+                        isAuthReady = true;
+                        showAuthForm('login');
+                        showPage('auth-page');
+                        updateNavState(false);
                     }
                 });
 
             } catch (error) {
-                console.error("Error al inicializar Firebase:", error);
-                loadingIndicator.textContent = 'Error al cargar la plataforma. Revise la consola.';
-                showModal('Error de Carga', `No se pudo iniciar la plataforma. Detalles: ${error.message}`);
-            }
-        };
-
-        /**
-         * Fetches user's name and last name from Firestore and updates global variable.
-         */
-        const fetchAndSetUserData = async (uid) => {
-            try {
-                const docRef = getInvestmentDocRef(uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const name = data.name || '';
-                    const lastName = data.lastName || '';
-                    currentUserName = `${name} ${lastName}`.trim();
-                } else {
-                    currentUserName = '';
+                console.error("Error al inicializar Firebase o durante la autenticación:", error);
+                showNotification("Error de Conexión", `No se pudo conectar a Firebase. Asegúrese de que el servicio 'Authentication' (Email/Password) esté habilitado. Código: ${error.code}`);
+                // Asegura que se muestre algo si no puede cargar
+                if (document.getElementById('auth-page').classList.contains('hidden')) {
+                     showPage('auth-page');
                 }
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                currentUserName = '';
             }
-        };
+        }
 
-        // --- Utilidades de Firestore y Lógica de Crecimiento ---
+        // Función para configurar el documento de usuario en Firestore
+        async function setupUserDocument(userId) {
+            if (!db || !userId) return;
 
-        const getInvestmentDocRef = (uid) => {
-            // Ruta privada: /artifacts/{appId}/users/{userId}/inversiones/balance
-            return doc(db, `artifacts/${appId}/users/${uid}/inversiones`, 'balance');
-        };
-        
-        /**
-         * Busca usuarios que tienen como referente el ID del usuario actual. (MOCK)
-         */
-        const fetchReferrals = async (referrerId) => {
-            if (!db) return [];
+            // RUTA FIJA: /alpha_market_users/{userId}
+            const userRef = doc(db, APP_COLLECTION_ROOT, userId);
+            const userSnap = await getDoc(userRef);
             
-            // MOCK DE DATOS DE REFERIDOS (Simulación funcional)
-            if (referrerId === currentUser.uid) {
-                 return [
-                    { id: '12345678', name: 'Juan', lastName: 'Perez', joined: '2025-01-10', deposit: 100.00 },
-                    { id: '90123456', name: 'Maria', lastName: 'Gomez', joined: '2025-02-15', deposit: 50.00 },
-                    { id: '78901234', name: 'Pedro', lastName: 'Lopez', joined: '2025-03-20', deposit: 250.00 },
-                ];
-            } else {
-                return [];
-            }
-        };
+            if (!userSnap.exists()) {
+                const referrerId = getReferrerId();
+                const initialData = {
+                    email: auth.currentUser.email || 'N/A',
+                    balance: 0,
+                    referrerId: referrerId || null,
+                    referralsCount: 0, // Inicializar el contador para evitar undefined
+                    createdAt: Timestamp.now()
+                };
+                await setDoc(userRef, initialData);
 
-        /**
-         * Genera el link de referido completo.
-         */
-        const generateReferralLink = (uid) => {
-            return `${BASE_URL}?ref=${uid}`;
-        };
-
-        /**
-         * Calcula el nuevo balance aplicando el crecimiento diario del 20% desde la última actualización.
-         */
-        const calculateDailyGrowth = (amount, lastUpdateIso) => {
-            if (amount <= 0) return { newBalance: 0, gain: 0 };
-            
-            const lastUpdate = new Date(lastUpdateIso);
-            const now = new Date();
-            
-            const diffMs = now - lastUpdate;
-            const msInDay = 1000 * 60 * 60 * 24;
-            const daysPassed = Math.floor(diffMs / msInDay); 
-            
-            if (daysPassed <= 0) return { newBalance: amount, gain: 0 }; 
-
-            let newBalance = amount;
-            
-            // Fórmula de interés compuesto diario al 20%
-            newBalance = amount * Math.pow((1 + DAILY_RETURN_RATE), daysPassed);
-            
-            const gain = newBalance - amount;
-            
-            return { newBalance: parseFloat(newBalance.toFixed(2)), gain: parseFloat(gain.toFixed(2)) };
-        };
-
-        /**
-         * Aplica y guarda el crecimiento del 20% diario si ha pasado al menos un día.
-         */
-        const updateBalanceWithGrowth = async (uid, currentData) => {
-            const balance = currentData.amount || 0.00;
-            const lastUpdate = currentData.lastUpdate || new Date().toISOString();
-            const currentGain = currentData.totalRealGain || 0.00; 
-
-            const { newBalance, gain } = calculateDailyGrowth(balance, lastUpdate);
-            
-            if (gain > 0) {
-                const userDocRef = getInvestmentDocRef(uid);
-                
-                await setDoc(userDocRef, {
-                    amount: newBalance,
-                    lastUpdate: new Date().toISOString(), 
-                    totalRealGain: currentGain + gain,
-                }, { merge: true });
-
-                console.log(`Crecimiento del 20% aplicado: +$${gain.toFixed(2)} USDT.`);
-            }
-        };
-
-
-        // --- Lógica de Renderizado de Vistas ---
-
-        const renderReferralInfo = () => {
-             if (!currentUser || currentUser.isAnonymous) return;
-             
-             const uid = currentUser.uid;
-             referralLinkDisplay.textContent = generateReferralLink(uid);
-             referralCodeDisplay.textContent = uid;
-             userReferralInfo.classList.remove('hidden');
-        };
-
-        const renderDashboard = () => {
-            // El contenido del dashboard ya está en el archivo anterior, solo lo renderizamos.
-            dashboardView.innerHTML = `
-                <div class="card-bg p-8 sm:p-10">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 alpha-text-gradient">
-                        Panel del Inversor Alpha
-                    </h2>
-
-                    <!-- Información de Inversión y Rendimiento -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <!-- Balance Total -->
-                        <div class="p-5 bg-blue-50 rounded-xl border border-blue-200">
-                            <p class="text-sm font-medium text-blue-600">Balance Total (USDT)</p>
-                            <p id="current-balance" class="text-3xl font-bold text-blue-900 mt-1">$${currentBalance.toFixed(2)}</p>
-                        </div>
-                        <!-- Rendimiento Real -->
-                        <div class="p-5 bg-green-50 rounded-xl border border-green-200">
-                            <p class="text-sm font-medium text-green-600">Ganancia Acumulada</p>
-                            <p id="total-gain-display" class="text-3xl font-bold text-green-700 mt-1">$${totalRealGain.toFixed(2)}</p>
-                        </div>
-                         <!-- Tasa de Retorno -->
-                        <div class="p-5 bg-yellow-50 rounded-xl border border-yellow-200">
-                            <p class="text-sm font-medium text-yellow-600">Tasa de Rendimiento</p>
-                            <p class="text-3xl font-bold text-yellow-800 mt-1">${(DAILY_RETURN_RATE * 100).toFixed(0)}% Diario</p>
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN DE PLANES Y DEPÓSITO -->
-                    <div class="mt-8 pt-6 border-t border-gray-200">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-4">Planes de Inversión Alpha Crypto</h3>
-                        
-                        <p class="text-md text-green-700 font-semibold mb-4 p-3 bg-green-100 rounded-lg flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
-                            RENDIMIENTO REAL: Su balance crece un ${(DAILY_RETURN_RATE * 100).toFixed(0)}% diariamente.
-                        </p>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                            <div class="p-4 bg-gray-100 rounded-lg border border-gray-300">
-                                <h4 class="text-lg font-bold text-blue-800">Plan Inicial</h4>
-                                <p class="text-sm text-gray-600">Inversión de $15 - $999 USDT</p>
-                            </div>
-                            <div class="p-4 bg-gray-100 rounded-lg border border-gray-300">
-                                <h4 class="text-lg font-bold text-blue-800">Plan Estratégico</h4>
-                                <p class="text-sm text-gray-600">Inversión de $1,000 USDT en adelante</p>
-                            </div>
-                        </div>
-
-                        <button onclick="showDepositModal()" class="w-full py-3 text-lg text-white font-bold rounded-lg bg-green-600 hover:bg-green-700 transition duration-200 shadow-md">
-                            Depositar Fondos Ahora (USDT)
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            if (currentUser && db) {
-                listenToBalance();
-            }
-        };
-        
-        const renderReferralsView = async () => {
-            referralsView.innerHTML = `
-                <div class="card-bg p-8 sm:p-10">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 alpha-text-gradient">
-                        Mi Red de Referidos (10% de Bono)
-                    </h2>
+                // Si hay un ID de referido, incrementamos el contador del referente
+                if (referrerId) {
+                    // RUTA FIJA: /alpha_market_users/{referrerId}
+                    const referrerRef = doc(db, APP_COLLECTION_ROOT, referrerId);
                     
-                    <!-- El link de referido se muestra arriba, en user-referral-info -->
-
-                    <!-- Lista de Referidos -->
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2 mt-8">
-                        Clientes Referidos por Usted
-                    </h3>
-                    <div id="referrals-list" class="space-y-3">
-                        <div class="text-center py-8 text-gray-500" id="referrals-loading">Cargando lista de referidos...</div>
-                    </div>
-                </div>
-            `;
-            
-            const listContainer = document.getElementById('referrals-list');
-            const loadingIndicator = document.getElementById('referrals-loading');
-            
-            try {
-                const referrals = await fetchReferrals(currentUser.uid);
-                
-                if (referrals.length === 0) {
-                    listContainer.innerHTML = `
-                        <div class="p-4 bg-yellow-50 rounded-lg text-yellow-700 border border-yellow-200 text-center">
-                            Aún no tiene clientes registrados con su código. ¡Comparta su Link/Código!
-                        </div>
-                    `;
-                } else {
-                    listContainer.innerHTML = ''; // Limpiar el indicador de carga
-                    referrals.forEach(ref => {
-                        const date = new Date(ref.joined).toLocaleDateString();
-                        const fullName = `${ref.name} ${ref.lastName}`;
-                        const item = document.createElement('div');
-                        item.className = 'p-4 bg-gray-50 rounded-lg flex justify-between items-center border border-gray-200 hover:bg-gray-100 transition duration-150';
-                        item.innerHTML = `
-                            <div>
-                                <p class="font-bold text-gray-800">${fullName}</p>
-                                <p class="text-xs text-gray-500">ID: ${ref.id} | Registrado: ${date}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold text-green-600">Depósito Inicial (MOCK)</p>
-                                <p class="text-lg font-bold text-green-800">$${ref.deposit ? ref.deposit.toFixed(2) : '0.00'}</p>
-                            </div>
-                        `;
-                        listContainer.appendChild(item);
+                    // Usamos updateDoc para evitar sobrescribir si el documento existe
+                    await updateDoc(referrerRef, {
+                        referralsCount: (await getDoc(referrerRef)).data()?.referralsCount + 1 || 1
+                    }).catch(e => {
+                        console.error("Advertencia: No se pudo actualizar el contador del referente (quizás el ID no existe):", e);
+                        // No es crítico, el usuario sigue funcionando
                     });
                 }
-            } catch (error) {
-                console.error("Error al obtener referidos:", error);
-                listContainer.innerHTML = `<div class="p-4 bg-red-100 rounded-lg text-red-700">Error al cargar la red de referidos.</div>`;
             }
-        };
+        }
 
-        // Escucha en tiempo real los cambios en el balance del usuario
-        const listenToBalance = () => {
-            const userDocRef = getInvestmentDocRef(currentUser.uid);
-            
-            onSnapshot(userDocRef, async (docSnapshot) => {
-                let data = {};
-                if (docSnapshot.exists()) {
-                    data = docSnapshot.data();
-                }
+        // --- LISTENER DE DATOS EN TIEMPO REAL ---
 
-                if (!currentUser.isAnonymous) {
-                    await updateBalanceWithGrowth(currentUser.uid, data);
-                    
-                    // Actualizar nombre global y menú
-                    const name = data.name || '';
-                    const lastName = data.lastName || '';
-                    currentUserName = `${name} ${lastName}`.trim();
-                    renderMenuControls(true, currentUser.email);
-                }
-                
-                currentBalance = data.amount || 0.00;
-                totalRealGain = data.totalRealGain || 0.00; 
+        function startRealtimeListeners(userId) {
+            if (!db || !userId || !auth.currentUser || auth.currentUser.isAnonymous) return;
 
-                const balanceElement = document.getElementById('current-balance');
-                const gainElement = document.getElementById('total-gain-display');
-
-                if (balanceElement && gainElement) {
-                    balanceElement.textContent = `$${currentBalance.toFixed(2)}`;
-                    gainElement.textContent = `$${totalRealGain.toFixed(2)}`;
+            // 1. Listener del Balance/Perfil
+            // RUTA FIJA: /alpha_market_users/{userId}
+            const userRef = doc(db, APP_COLLECTION_ROOT, userId);
+            onSnapshot(userRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    // Dashboard
+                    document.getElementById('dashboard-balance').textContent = formatter.format(data.balance || 0);
+                    document.getElementById('dashboard-referrals-count').textContent = data.referralsCount || 0;
+                    // Perfil
+                    document.getElementById('profile-email').textContent = data.email;
+                    document.getElementById('profile-user-id').textContent = userId;
+                    document.getElementById('profile-referrer-id').textContent = data.referrerId || 'N/A';
                 }
             }, (error) => {
-                console.error("Error al escuchar el balance:", error);
+                console.error("Error al escuchar el perfil:", error);
+                showNotification("Error de Datos", "No se pudieron cargar tus datos de perfil.");
             });
-        };
 
-        // --- Lógica de Autenticación (Auth) y Datos (Firestore) ---
+            // 2. Listener de Transacciones (Subcolección)
+            // RUTA FIJA: /alpha_market_users/{userId}/transactions/{transactionId}
+            const transactionsColRef = collection(db, APP_COLLECTION_ROOT, userId, 'transactions');
+            
+            // Creamos la query. NO usamos orderBy para evitar errores de índice.
+            const q = query(transactionsColRef);
+            
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('transaction-list');
+                list.innerHTML = '';
+                if (snapshot.empty) {
+                    list.innerHTML = '<li class="text-gray-500 italic text-center p-4">No hay transacciones recientes.</li>';
+                    return;
+                }
 
-        const handleAuthSubmit = async (e, isLogin) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('auth-submit-btn');
+                // Ordenar en memoria por timestamp (lo más reciente primero)
+                const sortedDocs = snapshot.docs.map(d => d.data()).sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
 
-            btn.innerHTML = '<div class="loading-ring"></div>';
-            btn.disabled = true;
+                sortedDocs.slice(0, 5).forEach(data => {
+                    const li = document.createElement('li');
+                    const date = data.timestamp.toDate().toLocaleDateString();
+                    const type = data.type === 'deposit' ? 'Depósito' : (data.type === 'withdraw' ? 'Retiro' : 'Comisión');
+                    const amountText = formatter.format(data.amount);
+                    
+                    li.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg border-l-4 border-gray-200';
+                    li.innerHTML = `
+                        <span class="font-medium text-gray-800">${type} - ${amountText}</span>
+                        <span class="text-sm text-gray-500">${date}</span>
+                    `;
+                    if (data.type === 'deposit' || data.type === 'referral_commission') {
+                        li.classList.replace('border-gray-200', 'border-green-500');
+                    } else {
+                        li.classList.replace('border-gray-200', 'border-red-500');
+                    }
+                    list.appendChild(li);
+                });
+            }, (error) => {
+                console.error("Error al escuchar transacciones:", error);
+            });
 
+            // 3. Listener de Referidos
+            // RUTA FIJA: Query sobre la colección /alpha_market_users
+            const referralsQuery = query(collection(db, APP_COLLECTION_ROOT), where('referrerId', '==', userId));
+            onSnapshot(referralsQuery, (snapshot) => {
+                const list = document.getElementById('referrals-list');
+                const countSpan = document.getElementById('referrals-list-count');
+                list.innerHTML = '';
+                countSpan.textContent = snapshot.size;
+
+                if (snapshot.empty) {
+                    list.innerHTML = '<li id="no-referrals-message" class="text-center italic">Aún no tienes referidos.</li>';
+                    return;
+                }
+
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    const li = document.createElement('li');
+                    li.className = 'p-2 bg-gray-50 rounded-lg flex justify-between items-center';
+                    li.innerHTML = `<span class="font-medium">${data.email}</span><span class="text-sm text-gray-500">Capital: ${formatter.format(data.balance || 0)}</span>`;
+                    list.appendChild(li);
+                });
+            }, (error) => {
+                console.error("Error al escuchar referidos:", error);
+            });
+
+
+            // Generar Enlace de Referido
+            const baseURL = window.location.origin + window.location.pathname;
+            document.getElementById('referral-link-input').value = `${baseURL}?ref=${userId}`;
+        }
+
+
+        // --- LÓGICA DE NEGOCIO (TRANSACCIONES) ---
+
+        // Función para manejar transacciones (Depósito y Retiro)
+        async function handleTransaction(type, amount) {
+            if (!currentUser || currentUser.isAnonymous || !db) {
+                showNotification("Error", "Debes iniciar sesión con una cuenta de Email/Contraseña para realizar transacciones.");
+                return;
+            }
+            if (amount <= 0) {
+                showNotification("Error", "La cantidad debe ser positiva.");
+                return;
+            }
+            
+            // Referencias a las rutas fijas
+            const userRef = doc(db, APP_COLLECTION_ROOT, currentUser.uid);
+            const transactionsColRef = collection(db, APP_COLLECTION_ROOT, currentUser.uid, 'transactions');
+            const submitBtn = document.getElementById('transaction-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Procesando...';
+            
             try {
-                if (isLogin) {
-                    await signInWithEmailAndPassword(auth, email, password);
-                    showModal('Inicio Exitoso', '¡Bienvenido de nuevo! Redirigiendo al panel.');
-                    navigateToView('dashboard'); 
-                } else {
-                    // Campos adicionales para el registro
-                    const name = document.getElementById('name').value;
-                    const lastName = document.getElementById('lastName').value;
-                    const referrerId = document.getElementById('referral-code')?.value || null; 
-
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const uid = userCredential.user.uid;
-
-                    let userData = {
-                        amount: 0.00,
-                        lastUpdate: new Date().toISOString(),
-                        totalRealGain: 0.00,
-                        email: email, 
-                        name: name, // Guardar Nombre
-                        lastName: lastName, // Guardar Apellido
-                    };
+                await runTransaction(db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) {
+                        throw "Documento de usuario no encontrado.";
+                    }
                     
-                    let successMessage = `¡Bienvenido ${name}! Te has registrado con éxito.`;
+                    const newBalance = userDoc.data().balance + (type === 'deposit' ? amount : -amount);
                     
-                    if (referrerId && referrerId !== uid) {
-                        const referrerDocRef = getInvestmentDocRef(referrerId);
-                        const referrerDoc = await getDoc(referrerDocRef);
+                    if (type === 'withdraw' && newBalance < 0) {
+                        throw "Fondos insuficientes para el retiro.";
+                    }
+                    
+                    // 1. Actualizar el balance del usuario
+                    transaction.update(userRef, { balance: newBalance });
+
+                    // 2. Registrar la transacción
+                    await setDoc(doc(transactionsColRef), {
+                        type: type,
+                        amount: amount,
+                        timestamp: Timestamp.now(),
+                        newBalance: newBalance
+                    });
+
+                    // 3. Procesar Comisión de Referido (solo en depósito)
+                    if (type === 'deposit' && userDoc.data().referrerId) {
+                        const referrerId = userDoc.data().referrerId;
+                        const commissionAmount = amount * 0.10;
                         
-                        // Solo aceptamos el código si existe el documento del referente
-                        if (referrerDoc.exists() && referrerDoc.data().amount !== undefined) {
-                            userData.referrerId = referrerId;
-                            successMessage += ` Código de referido (${referrerId.substring(0, 8)}...) aceptado.`;
-                        } else {
-                            successMessage += ` Código de referido inválido o no encontrado.`;
+                        const referrerRef = doc(db, APP_COLLECTION_ROOT, referrerId);
+                        
+                        const referrerDoc = await transaction.get(referrerRef);
+                        if (referrerDoc.exists()) {
+                            const newReferrerBalance = referrerDoc.data().balance + commissionAmount;
+                            
+                            // Asegurarse de que el referente exista y esté activo
+                            transaction.update(referrerRef, { 
+                                balance: newReferrerBalance
+                            });
+
+                            // Registrar la comisión en el historial del referente 
+                            await setDoc(doc(collection(db, APP_COLLECTION_ROOT, referrerId, 'transactions')), {
+                                type: 'referral_commission',
+                                amount: commissionAmount,
+                                fromUser: currentUser.uid,
+                                timestamp: Timestamp.now()
+                            });
                         }
                     }
+                });
 
-                    await setDoc(getInvestmentDocRef(uid), userData, { merge: true });
-                    showModal('Registro Exitoso', successMessage + ' Redirigiendo al panel.');
-                    navigateToView('dashboard'); 
-                }
+                showNotification("Éxito", `${type === 'deposit' ? 'Depósito' : 'Retiro'} de ${formatter.format(amount)} realizado con éxito.`);
             } catch (error) {
-                console.error("Error de autenticación:", error);
-                let errorMessage = "Ocurrió un error. Intente de nuevo.";
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = "Este email ya está registrado. Intente iniciar sesión.";
-                } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMessage = "Credenciales inválidas. Email o contraseña incorrectos.";
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = "La contraseña debe tener al menos 6 caracteres.";
-                }
-                showModal('Error de Autenticación', errorMessage);
+                console.error("Error en la transacción:", error);
+                const errorMessage = typeof error === 'string' ? error : (error.message || "Error desconocido. Revise la consola.");
+                showNotification("Error de Transacción", errorMessage);
             } finally {
-                btn.innerHTML = `<span>${isLogin ? 'Iniciar Sesión' : 'Registrarse'}</span>`;
-                btn.disabled = false;
+                submitBtn.disabled = false;
+                submitBtn.textContent = type === 'deposit' ? 'Realizar Depósito' : 'Realizar Retiro';
             }
-        };
+        }
 
-        window.handleLogout = async () => {
-            try {
-                await signOut(auth);
-                showModal('Adiós', 'Ha cerrado sesión exitosamente.');
-                // Redirige al Home después de cerrar sesión
-                navigateToView('home'); 
-            } catch (error) {
-                console.error("Error al cerrar sesión:", error);
-                showModal('Error al Cerrar Sesión', 'No se pudo cerrar la sesión. Intente de nuevo.');
+
+        // --- UI Y MANEJO DE FORMS ---
+
+        function showAuthForm(view) {
+            const container = document.getElementById('auth-form-container');
+            let formHTML = '';
+            
+            // Ocultar el ID si no es anónimo (para evitar confusiones)
+            if (currentUser && !currentUser.isAnonymous) {
+                document.getElementById('auth-user-id').classList.add('hidden');
             }
-        };
 
-        // --- Lógica de Renderizado de Menú y Formularios ---
-
-        const renderMenuControls = (isLoggedIn, email = null) => {
-            const authMenuLinks = document.getElementById('auth-menu-links');
-            
-            menuDashboardLink.classList.add('hidden');
-            menuReferralsLink.classList.add('hidden');
-            authMenuLinks.innerHTML = '';
-            
-            // Lógica de Display de Usuario en el Menú
-            if (isLoggedIn) {
-                const displayName = currentUserName ? currentUserName : email;
-                userDisplayNameEmail.innerHTML = `<span class="font-bold">${displayName}</span>`;
-
-                // Usuario Logueado
-                menuDashboardLink.classList.remove('hidden');
-                menuReferralsLink.classList.remove('hidden');
-
-                authMenuLinks.innerHTML = `
-                    <button onclick="handleLogout(); toggleMenu(false);" class="w-full p-3 text-left font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                        Cerrar Sesión
-                    </button>
-                `;
-            } else {
-                // Usuario Deslogueado
-                userDisplayNameEmail.textContent = 'Inicie sesión o regístrese';
-                authMenuLinks.innerHTML = `
-                    <a href="#" onclick="menuNavigate('login')" class="p-3 text-blue-600 hover:bg-blue-100 rounded-lg transition duration-150 flex items-center border border-blue-600">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3v-1a3 3 0 013-3h7"></path></svg>
-                        Iniciar Sesión
-                    </a>
-                    <a href="#" onclick="menuNavigate('register')" class="p-3 text-white font-bold alpha-gradient rounded-lg hover:opacity-90 transition duration-150 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
-                        Registrarse
-                    </a>
-                `;
-            }
-        };
-
-
-        const renderAuthForms = (mode) => {
-            const isLogin = mode === 'login';
-            
-            // Campos adicionales para el registro (solo si no es login)
-            const kycFields = isLogin ? '' : `
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">Nombre</label>
-                        <input type="text" id="name" required placeholder="Su Nombre" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="lastName" class="block text-sm font-medium text-gray-700">Apellidos</label>
-                        <input type="text" id="lastName" required placeholder="Sus Apellidos" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-            `;
-            
-            // El código de referido es opcional SOLO en el registro
-            const referralField = isLogin ? '' : `
-                <div>
-                    <label for="referral-code" class="block text-sm font-medium text-gray-700">Código de Referido (Opcional)</label>
-                    <input type="text" id="referral-code" placeholder="ID del usuario que te refirió" class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 uppercase">
-                    <p class="text-xs text-gray-500 mt-1">Si es válido, obtendrás un 10% de bono en tu primer depósito.</p>
-                </div>
-            `;
-
-            authView.innerHTML = `
-                <div class="max-w-md mx-auto p-8 card-bg">
-                    <h2 class="text-3xl font-extrabold text-gray-900 text-center mb-6 alpha-text-gradient">
-                        ${isLogin ? 'Iniciar Sesión' : 'Crear Cuenta Alpha Market'}
-                    </h2>
-                    <form id="auth-form" class="space-y-4">
-                        ${kycFields}
-                        <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                            <input type="email" id="email" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-                            <input type="password" id="password" required class="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        ${referralField}
-                        <button type="submit" id="auth-submit-btn" class="w-full py-3 text-white font-bold rounded-lg alpha-gradient hover:opacity-90 transition duration-200 flex justify-center items-center space-x-2">
-                            <span>${isLogin ? 'Iniciar Sesión' : 'Registrarse'}</span>
-                        </button>
+            if (view === 'login') {
+                formHTML = `
+                    <form id="login-form" class="space-y-4">
+                        <input type="email" id="login-email" placeholder="Correo Electrónico" required class="w-full input-style">
+                        <input type="password" id="login-password" placeholder="Contraseña" required class="w-full input-style">
+                        <button type="submit" class="btn-primary w-full py-3 rounded-lg font-bold text-lg">Iniciar Sesión</button>
                     </form>
-                    <button onclick="navigateToView('${isLogin ? 'register' : 'login'}')" class="mt-4 w-full text-sm text-blue-600 hover:text-blue-800 transition duration-200">
-                        ${isLogin ? '¿No tienes cuenta? Regístrate aquí.' : '¿Ya tienes cuenta? Inicia sesión aquí.'}
-                    </button>
-                    <button onclick="navigateToView('home')" class="mt-4 w-full text-sm text-gray-500 hover:text-gray-700 transition duration-200">
-                        Volver a Inicio
-                    </button>
-                </div>
-            `;
-            document.getElementById('auth-form').addEventListener('submit', (e) => handleAuthSubmit(e, isLogin));
-        };
-        
-        // Maneja la Confirmación de Depósito 
-        document.getElementById('deposit-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const inputAmount = document.getElementById('deposit-amount');
-            const network = document.getElementById('deposit-network').value;
-            const newDeposit = parseFloat(inputAmount.value);
-            const btn = document.getElementById('deposit-submit-btn');
-            const btnText = document.getElementById('deposit-submit-text');
-            const spinner = document.getElementById('deposit-submit-spinner');
-
-            if (isNaN(newDeposit) || newDeposit < MIN_DEPOSIT) {
-                showModal('Error de Depósito', `El monto mínimo de inversión es $${MIN_DEPOSIT.toFixed(2)} USDT.`);
-                return;
+                    <div class="text-center mt-4">
+                        <p class="text-gray-600">¿No tienes cuenta? <button type="button" onclick="showAuthForm('register')" class="text-[#1f3a5f] font-semibold hover:underline">Regístrate aquí.</button></p>
+                    </div>
+                `;
+            } else if (view === 'register') {
+                const referrerId = getReferrerId();
+                formHTML = `
+                    <form id="register-form" class="space-y-4">
+                        <input type="email" id="register-email" placeholder="Correo Electrónico" required class="w-full input-style">
+                        <input type="password" id="register-password" placeholder="Contraseña (mín. 6 caracteres)" required minlength="6" class="w-full input-style">
+                        ${referrerId ? `<p class="p-3 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-semibold">Referido por: <span class="break-all">${referrerId}</span></p>` : ''}
+                        <button type="submit" class="btn-primary w-full py-3 rounded-lg font-bold text-lg">Registrarse</button>
+                    </form>
+                    <div class="text-center mt-4">
+                        <p class="text-gray-600">¿Ya tienes cuenta? <button type="button" onclick="showAuthForm('login')" class="text-[#1f3a5f] font-semibold hover:underline">Inicia sesión aquí.</button></p>
+                    </div>
+                `;
             }
-            if (!network) {
-                showModal('Error de Depósito', 'Por favor, seleccione una red de depósito (BEP20 o TRC20).');
-                return;
-            }
-            if (!currentUser || currentUser.isAnonymous) {
-                showModal('Error de Autenticación', 'La sesión ha expirado. Por favor, inicie sesión de nuevo.');
-                return;
-            }
+            container.innerHTML = formHTML;
+            attachAuthListeners(view);
+        }
 
-            btnText.textContent = 'Procesando...';
-            spinner.classList.remove('hidden');
-            btn.disabled = true;
+        function attachAuthListeners(view) {
+            if (view === 'login') {
+                document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('login-email').value;
+                    const password = document.getElementById('login-password').value;
+                    try {
+                        await signInWithEmailAndPassword(auth, email, password);
+                        // onAuthStateChanged se encarga del resto
 
-            try {
-                await new Promise(resolve => setTimeout(resolve, 2000)); 
-
-                const userDocRef = getInvestmentDocRef(currentUser.uid);
-                const userDoc = await getDoc(userDocRef);
-                const userData = userDoc.exists() ? userDoc.data() : { amount: 0, totalRealGain: 0, lastUpdate: new Date().toISOString() };
-
-                const updatedBalance = parseFloat((userData.amount + newDeposit).toFixed(2));
-                let depositMessage = `Se han añadido $${newDeposit.toFixed(2)} USDT a su cuenta a través de la red ${network}.`;
-
-                // Lógica de bono por referido
-                if (userData.referrerId) {
-                    const referrerId = userData.referrerId;
-                    const referrerDocRef = getInvestmentDocRef(referrerId);
-                    const referrerDoc = await getDoc(referrerDocRef);
-                    
-                    if (referrerDoc.exists()) { 
-                        const referrerData = referrerDoc.data();
-                        const bonusAmount = parseFloat((newDeposit * REFERRAL_BONUS_RATE).toFixed(2));
-                        const referrerNewBalance = parseFloat((referrerData.amount + bonusAmount).toFixed(2));
-                        
-                        // Guardar el bono al referente
-                        await setDoc(referrerDocRef, {
-                            amount: referrerNewBalance,
-                            lastReferralBonus: bonusAmount,
-                            // Los campos name/lastName NO se tocan
-                        }, { merge: true });
-
-                        depositMessage += ` Además, su referente (${referrerId.substring(0, 8)}...) ha recibido un bono.`;
+                    } catch (error) {
+                        console.error("Error al iniciar sesión:", error);
+                        showNotification("Error de Autenticación", `Datos incorrectos o usuario no encontrado. Código: ${error.code}`);
                     }
-                    
-                    // Solo eliminar el referrerId si fue utilizado una vez
-                    userData.referrerId = null; 
-                }
-
-                // Guardar el nuevo balance
-                await setDoc(userDocRef, {
-                    amount: updatedBalance,
-                    lastDeposit: newDeposit,
-                    lastNetwork: network,
-                    lastUpdate: new Date().toISOString(), 
-                    userId: currentUser.uid,
-                    referrerId: userData.referrerId 
-                }, { merge: true });
-
-                hideDepositModal();
-                showModal('¡Depósito Exitoso!', `${depositMessage} Su nuevo balance es $${updatedBalance.toFixed(2)}. ¡Disfrute del ${DAILY_RETURN_RATE * 100}% de rendimiento diario REAL!`);
-                inputAmount.value = '';
-
-            } catch (error) {
-                console.error("Error al procesar el depósito/referido:", error);
-                showModal('Error de Transacción', `No se pudo procesar la transacción. Detalles: ${error.message}`);
-            } finally {
-                btnText.textContent = 'Confirmar Depósito';
-                spinner.classList.add('hidden');
-                btn.disabled = false;
+                });
+            } else if (view === 'register') {
+                document.getElementById('register-form')?.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('register-email').value;
+                    const password = document.getElementById('register-password').value;
+                    try {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        // setupUserDocument se llamará automáticamente desde onAuthStateChanged
+                        showNotification("Registro Exitoso", "¡Tu cuenta ha sido creada! Bienvenido.");
+                        await setupUserDocument(userCredential.user.uid);
+                    } catch (error) {
+                        console.error("Error al registrar:", error);
+                        showNotification("Error de Registro", `El email puede estar ya en uso o la contraseña es muy débil (mín. 6 caracteres). Código: ${error.code}`);
+                    }
+                });
             }
+        }
+
+        function logout() {
+            signOut(auth).then(() => {
+                showNotification("Sesión Cerrada", "Has cerrado tu sesión con éxito.");
+                // onAuthStateChanged manejará el cambio a la vista de autenticación.
+            }).catch((error) => {
+                console.error("Error al cerrar sesión:", error);
+            });
+        }
+
+        // --- MANEJO DE UI / DASHBOARD ---
+        
+        // Manejar botones de Depósito/Retiro
+        document.getElementById('btn-deposit')?.addEventListener('click', (e) => {
+            document.getElementById('btn-deposit').classList.add('border-[#1f3a5f]', 'text-[#1f3a5f]');
+            document.getElementById('btn-withdraw').classList.remove('border-[#1f3a5f]', 'text-[#1f3a5f]');
+            document.getElementById('transaction-submit-btn').textContent = 'Realizar Depósito';
+            document.getElementById('transaction-submit-btn').dataset.type = 'deposit';
         });
 
+        document.getElementById('btn-withdraw')?.addEventListener('click', (e) => {
+            document.getElementById('btn-withdraw').classList.add('border-[#1f3a5f]', 'text-[#1f3a5f]');
+            document.getElementById('btn-deposit').classList.remove('border-[#1f3a5f]', 'text-[#1f3a5f]');
+            document.getElementById('transaction-submit-btn').textContent = 'Realizar Retiro';
+            document.getElementById('transaction-submit-btn').dataset.type = 'withdraw';
+        });
 
-        // --- Inicio de la Aplicación ---
-        window.onload = initializeAppAndAuth;
+        // Manejar el formulario de Transacción
+        document.getElementById('transaction-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amountInput = document.getElementById('amount');
+            const amount = parseFloat(amountInput.value);
+            const type = document.getElementById('transaction-submit-btn').dataset.type || 'deposit';
+            await handleTransaction(type, amount);
+            amountInput.value = ''; // Limpiar campo después de la transacción
+        });
+
+        // Inicializar el estado de la UI (Dashboard)
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btn-deposit').click(); // Seleccionar Depósito por defecto
+            initFirebase();
+            // La página inicial es el loading spinner. showPage se llama después de initFirebase.
+        });
+
+        // Toggle del menú móvil
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+        document.getElementById('menu-button').addEventListener('click', toggleMenu);
+
+
+        // Copiar enlace de referido al portapapeles
+        document.getElementById('copy-referral-link')?.addEventListener('click', () => {
+            const linkInput = document.getElementById('referral-link-input');
+            linkInput.select();
+            // Ejecutar el comando de copiado (compatible con iFrame)
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showNotification("Copiado", "¡Enlace de referido copiado al portapapeles!");
+                } else {
+                    throw new Error("Copy command failed");
+                }
+            } catch (err) {
+                // Fallback si execCommand falla (común en algunos móviles)
+                showNotification("Error al Copiar", "Por favor, selecciona y copia el enlace manualmente.");
+                console.error('Fallback: Unable to copy', err);
+            }
+        });
 
     </script>
 </body>
 </html>
+
